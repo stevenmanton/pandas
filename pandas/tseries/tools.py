@@ -399,8 +399,11 @@ def _to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     elif isinstance(arg, tslib.Timestamp):
         return arg
     elif isinstance(arg, Series):
-        values = _convert_listlike(arg._values, False, format)
-        return Series(values, index=arg.index, name=arg.name)
+        # Convert only the unique values (slow) then use it as a mapping to
+        # convert the rest of the values (fast)
+        unique_values = np.unique(arg._values)
+        values = _convert_listlike(unique_values, False, format)
+        return arg.map(dict(zip(unique_values, values)))
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, box, format, name=arg.name)
     elif com.is_list_like(arg):
